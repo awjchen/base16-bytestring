@@ -26,7 +26,11 @@ import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(poke, peek))
 
 import GHC.Word (Word8(..))
+#if MIN_VERSION_base(4,16,0)
+import GHC.Exts (Int(I#), Addr#, indexWord8OffAddr#, word2Int#, word8ToWord#, uncheckedShiftRLWord8#)
+#else
 import GHC.Exts (Int(I#), Addr#, indexWord8OffAddr#, word2Int#, uncheckedShiftRL#)
+#endif
 
 #if __GLASGOW_HASKELL__ >= 702
 import System.IO.Unsafe (unsafeDupablePerformIO)
@@ -135,7 +139,12 @@ lenientLoop !dfp !dptr !sptr !end = goHi dptr sptr 0
 -- Utils
 
 aix :: Word8 -> Addr# -> Word8
+#if MIN_VERSION_base(4,16,0)
+aix (W8# w) table =
+  W8# (indexWord8OffAddr# table (word2Int# (word8ToWord# w)))
+#else
 aix (W8# w) table = W8# (indexWord8OffAddr# table (word2Int# w))
+#endif
 {-# INLINE aix #-}
 
 -- | Form a list of chunks, and rechunk the list of bytestrings
@@ -158,7 +167,11 @@ reChunk (c:cs) = case B.length c `divMod` 2 of
           else cont_ q' as
 
 unsafeShiftR :: Word8 -> Int -> Word8
+#if MIN_VERSION_base(4,16,0)
+unsafeShiftR (W8# x#) (I# i#) = W8# (x# `uncheckedShiftRLWord8#` i#)
+#else
 unsafeShiftR (W8# x#) (I# i#) = W8# (x# `uncheckedShiftRL#` i#)
+#endif
 {-# INLINE unsafeShiftR #-}
 
 c2w :: Char -> Word8
